@@ -6,8 +6,6 @@ df = pd.read_csv('fires-all.csv')
 
 coordMunicipio = pd.Series(None, index=df['municipio'].unique()).to_dict()
 
-# print(coordMunicipio)
-# print(type(coordMunicipio))
 error = []
 geolocator = Nominatim(user_agent="apaProject")
 for municipio in coordMunicipio.keys():
@@ -21,8 +19,6 @@ for municipio in coordMunicipio.keys():
             print("Not in Spain: ", municipio)
             raise Exception
         coordMunicipio[municipio] = (location.latitude, location.longitude)
-        # print(location.address)
-        # print((location.latitude, location.longitude))
 
     except:
         error.append(municipio)
