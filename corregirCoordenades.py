@@ -1,72 +1,53 @@
 import pickle
 import pandas as pd
-import numpy as np
 from geopy.distance import geodesic
 import statistics as stat
-import math
 
 df = pd.read_csv('fires-all.csv')
 coords = pickle.load(open("coordenadesMunicipis.p", 'rb'))
 
-corregirMa = []
-i = 0
+notInCoordNewDict = {}
+
 for index, row in df.iterrows():
-# for municipi, coord in coords.items():
     municipi = row['municipio']
+    # Casos especials municipis amb el mateix nom
+    if municipi == 'SOBRADO' and row['idmunicipio'] == 80:
+        municipi = 'SOBRADOA'
+        continue
+    elif municipi == 'CIEZA' and row['idmunicipio'] == 19:
+        municipi = 'CIEZAA'
+        continue
+    elif municipi == 'CASTEJÓN' and row['idmunicipio'] == 67:
+        municipi = 'CASTEJONA'
+        continue
+    elif municipi == 'MOYA' and row['idmunicipio'] == 13:
+        municipi = 'MOYAA'
+        if row['lng'] - 15.582590 > 1:
+            row['lng'] = -15.582590
+        continue
+    elif municipi == 'ARROYOMOLINOS' and row['idmunicipio'] == 23:
+        municipi = 'ARROYOMOLINOSA'
+        continue
+    elif municipi == "SANCTI-SPIRITUS" or municipi == "SANCTI-SPÍRITUS":
+        continue
+
     # Municipi in dictionary
-    if municipi in coords:
-        # Iterem totes les files del municipi i les que no concordin amb el diccionari comprovant la distància entre
-        # el diccionari i la distància del row i
-        # les actualitzarem amb
-        # el valor del diccionari i posant explicit a 0
+    if type(coords[municipi]) is tuple:
+        # Comparem les coordenades del row amb les del diccionari mirant la distància geodèsica entre, si és major
+        # a 25km les actualitzarem amb el valor del diccionari i posant explicit a 0
+        # print("old2", geodesic(coords[municipi], (df.at[index, "lat"], df.at[index, "lng"])).km)
         if geodesic(coords[municipi], (row["lat"], row["lng"])).km > 25:
-            df.at[row["id"], "lat"] = coords[municipi][0]
-            df.at[row["id"], "lng"] = coords[municipi][1]
-            df.at[row["id"], "latlng_explicit"] = 0
-    # Municipi not in dictionary, fer mitjana amb els municipis (treient els màx i minim) i posant explicit a 0
+            df.at[index, "lat"] = coords[municipi][0]
+            df.at[index, "lng"] = coords[municipi][1]
+            df.at[index, "latlng_explicit"] = 0
+    # Municipi not in dictionary, fer la median amb els municipis i posant explicit a 0
     else:
-        pass
-    # rowsMunicipi = df.loc[df['municipio'] == municipi]
-    # varLat = np.var(rowsMunicipi["lat"])
-    # varLng = np.var(rowsMunicipi["lng"])
-    # # print(coordMunicipi)
-    # print("Municipi:", municipi, "Lat var:", varLat, "Lng var:", varLng)
+        if municipi not in notInCoordNewDict:
+            rowsMunicipi = df.loc[df['municipio'] == municipi]
+            notInCoordNewDict[municipi] = (stat.median(rowsMunicipi["lat"]), stat.median(rowsMunicipi["lng"]))
 
-    # Municipis amb el mateix nom, els id són diferent i coord correcte per tant modifiquem el nom del
-    # municipi posant per exemple SOBRADOA i SOBRADOB per distingir el municipi de SOBRADO
-    # if municipi == "SOBRADO" or municipi == "CIEZA" or municipi == "CASTEJÓN" or municipi == "MOYA":
-    #     print(municipi)
-    #
-    # if varLng > 1 or varLat > 1:
-    #     i += 1
-    #     # Cas 1: No està al diccionari
-    #     if type(coord) is not tuple:
-    #         # Fer mitjana amb els municipis (treient els màx i minim) i posant explicit a 0
-    #
-    #         continue
-    #     else:
-    #         # Iterem totes les files del municipi i les que no concordin amb el diccionari comprovant la distància entre
-    #         # el diccionari i la distància del row i
-    #         # les actualitzarem amb
-    #         # el valor del diccionari i posant explicit a 0
-    #         for row in rowsMunicipi:
-    #             if distance.vincenty(coord, (row["lat"], row["lng"])) > 25:
-    #                 df.at[row["id"], "lat"] = coord[0]
-    #                 df.at[row["id"], "lng"] = coord[1]
-    #
-    #
-    #                 pass
-    #         pass
+        df.at[index, "lat"] = notInCoordNewDict[municipi][0]
+        df.at[index, "lng"] = notInCoordNewDict[municipi][1]
+        df.at[index, "latlng_explicit"] = 0
 
-        # print(modaLat, modaLng)
-        # print(coord)
-        # print(coord[0], coord[1])
-        # print("Problem")
-        # print(municipi)
-        # print(coordMunicipi)
-        # break
-    # if i > 50:
-    #     break
-
-print("Fucked:", i)
-print("CorregirMa", len(corregirMa), corregirMa)
+df.to_csv('coordsCorregides.csv', index=False)
