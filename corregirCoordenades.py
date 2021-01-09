@@ -59,11 +59,11 @@ def correctCoords(dataframe):
             dataframe.at[index, "latlng_explicit"] = 0
 
 
-df = pd.read_csv('fires-all.csv')
+df = pd.read_csv('fires-all.csv', index_col='id')
 
 # Focs originats fora del territori espanyol
 df.drop(df.loc[df["idmunicipio"] == 999].index, inplace=True)
 df.drop(df.loc[df["idmunicipio"] == 998].index, inplace=True)
 
 correctCoords(df)
-df.to_csv('coordsCorregides.csv', index=False)
+df.to_csv('coordsCorregides.csv')
